@@ -28,9 +28,14 @@ Vagrant.configure('2') do |config|
 
       # Creating Config on host machine to manage multiple SSH keypairs on Windows
       config_content << <<~CONFIG
-        Host sftp#{i}
+        Host direct#{i}
           HostName 192.168.100.#{9 + i}
           User vagrant
+          IdentityFile #{ssh_key_path}/id_rsa
+        
+        Host sftp#{i}
+          HostName 192.168.100.#{9 + i}
+          User sftpuser
           IdentityFile #{ssh_key_path}/id_rsa
       CONFIG
       # Looking for path to the config file and adding necessary strings
@@ -39,7 +44,7 @@ Vagrant.configure('2') do |config|
       unless existing_content.include?(config_content)
         File.write(config_file, existing_content + config_content, mode: 'a')
       end
-      # Configure SSH key trading when each server is booted
+      #Configure SSH key trading when each server is booted
       machine.vm.provision "file", source: "#{ssh_key_path}/id_rsa", destination: "~/.ssh/id_rsa"
       machine.vm.provision "file", source: "#{ssh_key_path}/id_rsa.pub", destination: "~/.ssh/id_rsa.pub"
 
