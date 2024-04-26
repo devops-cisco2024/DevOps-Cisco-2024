@@ -2,9 +2,11 @@ require 'fileutils'
 
 Vagrant.configure('2') do |config|
     config_content = ""
-    (1..3).each do |i|
+    (1..1).each do |i|
+    # Preventing SSH key changes every time
+    config.vm.box_check_update = false
+    # Configure main
     config.vm.define "SFTP-#{i}" do |machine|
-      # Configure main
       machine.vm.box = 'ubuntu/focal64'
       machine.vm.network "private_network", ip: "192.168.100.#{9 + i}"
       machine.vm.hostname = "SFTP-#{i}"
@@ -37,7 +39,7 @@ Vagrant.configure('2') do |config|
       unless existing_content.include?(config_content)
         File.write(config_file, existing_content + config_content, mode: 'a')
       end
-      # Configure SSH trading when each server is booted
+      # Configure SSH key trading when each server is booted
       machine.vm.provision "file", source: "#{ssh_key_path}/id_rsa", destination: "~/.ssh/id_rsa"
       machine.vm.provision "file", source: "#{ssh_key_path}/id_rsa.pub", destination: "~/.ssh/id_rsa.pub"
 
@@ -50,18 +52,11 @@ Vagrant.configure('2') do |config|
         chmod 600 /home/vagrant/.ssh/authorized_keys
         chmod 600 /home/vagrant/.ssh/id_rsa
         chmod 644 /home/vagrant/.ssh/id_rsa.pub
-        # Adding sftp configs to sshd
-        cat <<END >> /etc/ssh/sshd_config
-        Match Group sftpgroup
-        ChrootDirectory %h
-        X11Forwarding no
-        AllowTcpForwarding no
-        ForceCommand internal-sftp
-        END 
         # Restarting SSH service to apply the changes
         systemctl restart ssh
         systemctl restart sshd
       SHELL
+      machine.vm.provision "shell", privileged: true, path: "sftp_setup.sh"
     end
     end
   end
