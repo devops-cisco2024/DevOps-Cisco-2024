@@ -1,67 +1,63 @@
-require 'fileutils'
+Vagrant.configure("2") do |config|
+  # Path to the folder for SSH keys
+  ssh_key_path = File.join(Dir.pwd, "ssh_keys")
+  Dir.mkdir(ssh_key_path) unless Dir.exist?(ssh_key_path)
 
-Vagrant.configure('2') do |config|
-    config_content = ""
-    (1..1).each do |i|
-    # Preventing SSH key changes every time
-    config.vm.box_check_update = false
-    # Configure main
-    config.vm.define "SFTP-#{i}" do |machine|
-      machine.vm.box = 'ubuntu/focal64'
-      machine.vm.network "private_network", ip: "192.168.100.#{9 + i}"
-      machine.vm.hostname = "SFTP-#{i}"
-      machine.vm.provider "virtualbox" do |vb|
-        # Configure resource consumption
-        vb.name = "SFTP-#{i}"
+  # Creating SSH keys if they don't exist
+  unless File.exist?("#{ssh_key_path}/id_rsa")
+    system("ssh-keygen -t rsa -b 2048 -f #{ssh_key_path}/id_rsa -q -N ''")
+  end
+
+  ips = ["192.168.50.11", "192.168.50.12", "192.168.50.13"]
+
+  (1..3).each do |i|
+    config.vm.define "sftp-server#{i}" do |ubuntu|
+      ubuntu.vm.box = "ubuntu/focal64"
+      ubuntu.vm.hostname = "sftp-server#{i}"
+      ubuntu.vm.network "private_network", ip: ips[i-1]
+
+      ubuntu.vm.provider "virtualbox" do |vb|
+        vb.name = "ubuntu#{i}"
         vb.gui = false
-        vb.cpus = '1'
-        vb.memory = '1024'
-      end
-      # Creation of individual SSH key directory for each server
-      ssh_key_path = File.join(Dir.pwd, "SFTP_#{i}/ssh_keys")
-      FileUtils.mkdir_p(ssh_key_path) unless Dir.exist?(ssh_key_path)
-
-      # Creation of individual keypair for each server on Windows
-      unless File.exist?("#{ssh_key_path}/id_rsa")
-        system("ssh-keygen -t rsa -b 2048 -f #{ssh_key_path}/id_rsa -q -N ''")
+        vb.memory = "2048"
+        vb.cpus = 2
       end
 
-      # Creating Config on host machine to manage multiple SSH keypairs on Windows
-      config_content << <<~CONFIG
-        Host direct#{i}
-          HostName 192.168.100.#{9 + i}
-          User vagrant
-          IdentityFile #{ssh_key_path}/id_rsa
-        
-        Host sftp#{i}
-          HostName 192.168.100.#{9 + i}
-          User sftpuser
-          IdentityFile #{ssh_key_path}/id_rsa
-      CONFIG
-      # Looking for path to the config file and adding necessary strings
-      config_file = File.join(File.expand_path('~/.ssh'), 'config')
-      existing_content = File.exist?(config_file) ? File.read(config_file) : ""
-      unless existing_content.include?(config_content)
-        File.write(config_file, existing_content + config_content, mode: 'a')
-      end
-      #Configure SSH key trading when each server is booted
-      machine.vm.provision "file", source: "#{ssh_key_path}/id_rsa", destination: "~/.ssh/id_rsa"
-      machine.vm.provision "file", source: "#{ssh_key_path}/id_rsa.pub", destination: "~/.ssh/id_rsa.pub"
+      # Ensuring that vagrant won't create new keypair for each box
+      ubuntu.ssh.insert_key = false
+      # If your VM boots too long, you can change this line to ensure connections
+      ubuntu.vm.boot_timeout = 360
+      # Copying SSH keys and script
+      ubuntu.vm.provision "file", source: "#{ssh_key_path}/id_rsa", destination: "~/.ssh/id_rsa"
+      ubuntu.vm.provision "file", source: "#{ssh_key_path}/id_rsa.pub", destination: "~/.ssh/id_rsa.pub"
+      ubuntu.vm.provision "file", source: "update_script.sh", destination: "~/update_script.sh"
+      ubuntu.vm.provision "file", source: "python_script.py", destination: "~/python_script.py"
 
-      machine.vm.provision "shell", privileged: true, inline: <<-SHELL
-        # Updating system and installing server on guest machine
+      ubuntu.vm.provision "shell", privileged: true, inline: <<-SHELL
+        # Updating and installing required packages
         apt-get update && apt-get install -y openssh-server
-        # Copying public part of SSH key to the authorized_keys
+        # Copying a public key for password-free access
         cat /home/vagrant/.ssh/id_rsa.pub >> /home/vagrant/.ssh/authorized_keys
-        # Preventing non-sudo changes to the keys directory
         chmod 600 /home/vagrant/.ssh/authorized_keys
         chmod 600 /home/vagrant/.ssh/id_rsa
         chmod 644 /home/vagrant/.ssh/id_rsa.pub
-        # Restarting SSH service to apply the changes
-        systemctl restart ssh
-        systemctl restart sshd
+        chmod 744 /home/vagrant/update_script.sh
+        # Restarting SSH service
+        systemctl restart ssh               
+        # Installing python3 for python script if it isn't installed with box
+        apt-get install python3
+        # Creation of cron
+        echo "*/1 * * * * /home/vagrant/update_script.sh" > /tmp/crontab_vagrant
+        crontab -u vagrant /tmp/crontab_vagrant
+        rm /tmp/crontab_vagrant
+      
+        # Restarting cron
+        sudo service cron restart
+
       SHELL
-      machine.vm.provision "shell", privileged: true, path: "sftp_setup.sh"
-    end
+      
+      # SFTP server and rkhunter setup
+      ubuntu.vm.provision "shell", privileged: true, path: "sftp_and_rkhunter_setup.sh"
     end
   end
+end
