@@ -17,7 +17,7 @@ This script is designed to analyze log files from a specified directory. It read
 1. Ensure all log files are placed in the `/home/vagrant/trace/` directory.
 2. Run the script with the command:
    ```bash
-   python3 log_parser.py
+   python3 python.py
 
 After the script executes, a report file named report-DD-MM-YYYY_HH-MM-SS.txt will be created in the /home/vagrant/report/ directory, where DD-MM-YYYY and HH-MM-SS represent the date and time the report was generated.
 
