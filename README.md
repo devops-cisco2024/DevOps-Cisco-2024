@@ -56,5 +56,3 @@ import datetime
 - Modify the network settings and VM specifications in the Vagrantfile as needed for your environment.
 - Update the interface name in update_script.sh to match your VM network configuration.
 - Ensure Python and all required packages are installed on the VMs as needed.
-
-
