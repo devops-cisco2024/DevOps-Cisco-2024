@@ -1,12 +1,13 @@
 # Automated Log Parsing and Reporting System
 
 ## Description
-This project sets up an automated system to collect, parse, and report server log data across multiple virtual machines using Vagrant, Bash, and Python. The setup includes creating virtual machines, generating and sharing SSH keys for seamless access, and running scheduled tasks for log data collection and report generation.
+This project sets up an automated system to collect, parse, and report server log data across multiple virtual machines using Vagrant, Bash, and Python. The setup includes creating virtual machines, generating and sharing SSH keys for seamless access,deploying multiple SFTP servers with restricted access, performing security audit and running scheduled tasks for log data collection and report generation.
 
 ## Components
 1. **Vagrantfile**: Configures and provisions multiple virtual machines.
-2. **update_script.sh**: Bash script for collecting log data from each machine.
-3. **python.py**: Python script for parsing the collected logs and generating a report.
+2. **sftp_setup.sh**: Configures and properly enables SFTP connection.
+3. **update_script.sh**: Bash script for collecting log data from each machine.
+4. **python.py**: Python script for parsing the collected logs and generating a report.
 
 ## Requirements
 - Vagrant
@@ -16,7 +17,7 @@ This project sets up an automated system to collect, parse, and report server lo
 ## Setup and Usage
 
 ### 1. Vagrant Configuration
-The `Vagrantfile` sets up three Ubuntu virtual machines, configures private network IPs, and sets up SSH keys for internal communication without passwords. Each VM is provisioned with necessary packages and scripts for the logging system.
+The `Vagrantfile` sets up three Ubuntu virtual machines, configures private network IPs, and sets up SSH keys for internal communication without passwords. Each VM is provisioned with necessary packages and scripts for the logging system through SFTP. Also it performs security audit as a part of the provisioning.
 
 ```ruby
 Vagrant.configure("2") do |config|
@@ -44,13 +45,15 @@ import datetime
 |-- ssh_keys/      # SSH keys directory
 |-- trace/         # Directory where logs are collected
 |-- report/        # Directory where reports are saved
+|-- sftp_setup.sh  # Bash script for configuring SFTP server
 |-- update_script.sh  # Bash script for collecting logs
 |-- python.py      # Python script for parsing logs and generating reports
 ```
 ## Running the Project
-1. Place the Vagrantfile, update_script.sh, and python.py in your project directory.
+1. Place the Vagrantfile,sftp_setup.sh, update_script.sh, and python.py in your project directory.
 2. Run vagrant up to start and provision the VMs.
 3. Logs are collected and parsed automatically per the scheduled tasks set up in the Vagrant provisioners.
+4. You can connect to any of the machines by writing "ssh vagrant@192.168.50.11(or 12/13 depending from the VM) after deployment or change the IP to your liking if necessary
 
 ## Additional Information
 - Modify the network settings and VM specifications in the Vagrantfile as needed for your environment.
