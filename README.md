@@ -53,7 +53,7 @@ import datetime
 1. Place the Vagrantfile,sftp_setup.sh, update_script.sh, and python.py in your project directory.
 2. Run vagrant up to start and provision the VMs.
 3. Logs are collected and parsed automatically per the scheduled tasks set up in the Vagrant provisioners.
-4. You can connect to any of the machines by writing "ssh vagrant@192.168.50.11(or 12/13 depending from the VM) after deployment.
+4. You can connect to any of the machines by writing "ssh vagrant@192.168.50.11(or 12/13 depending from the VM) after deployment or change the IP to your liking if necessary
 
 ## Additional Information
 - Modify the network settings and VM specifications in the Vagrantfile as needed for your environment.
