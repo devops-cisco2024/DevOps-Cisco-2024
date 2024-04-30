@@ -1,49 +1,28 @@
 #!/bin/bash
+# Getting the hostname
+HOSTNAME=$(hostname)
+# Obtaining an IP address, replace 'enp0s8' with the current interface on your system
+IP_ADDRESS=$(ip addr show enp0s8 | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
+# Getting the date and time
+DATETIME=$(date "+%d-%m-%Y %H:%M:%S")
+# File name formation
+FILENAME="${HOSTNAME}_$(date "+%Y%m%d%H%M%S").txt"
 
-# Get the current server name
-server_name=$(hostname)
+# Writing information to a file
+echo "Server Name: $HOSTNAME" > $FILENAME
+echo "IP Address: $IP_ADDRESS" >> $FILENAME
+echo "Date and Time: $DATETIME" >> $FILENAME
 
-# Get the current server IP address
-server_ip=$(hostname -I | awk '{print $1}')
+# List of IP addresses of machines
+NEIGHBORS=("192.168.50.11" "192.168.50.12" "192.168.50.13")
 
-# Create a log file with the server name and IP
-log_file="/home/vagrant/trace/${server_name}_${server_ip}.txt"
-echo "Server Name: ${server_name}" > "${log_file}"
-echo "IP Address: ${server_ip}" >> "${log_file}"
-
-# SFTP server IPs
-server1_ip="192.168.50.11"
-server2_ip="192.168.50.12"
-server3_ip="192.168.50.13"
-
-# Function to upload log file to SFTP server
-upload_log_file() {
-    local sftp_server_ip=$1
-    local sftp_user="sftpuser"
-    local sftp_password=$(date +%s | sha256sum | base64 | head -c 8)
-
-    # Use sshpass to provide the password for SFTP
-    sshpass -p "${sftp_password}" sftp "${sftp_user}@${sftp_server_ip}" <<EOF
-put "${log_file}" "/srv/sftpuser/data/trace/${server_name}_${server_ip}.txt"
+# Creating a trace folder on each machine via SSH and transferring the file via SFTP
+for NEIGHBOR in ${NEIGHBORS[@]}; do
+    if [[ "$IP_ADDRESS" != "$NEIGHBOR" ]]; then
+        sftp -o StrictHostKeyChecking=no sftpuser@$NEIGHBOR << EOF
+put $FILENAME /data/trace/$FILENAME
 EOF
-}
-
-# Upload log file to other servers based on the current server's IP
-case "${server_ip}" in
-    "${server1_ip}")
-        upload_log_file "${server2_ip}"
-        upload_log_file "${server3_ip}"
-        ;;
-    "${server2_ip}")
-        upload_log_file "${server1_ip}"
-        upload_log_file "${server3_ip}"
-        ;;
-    "${server3_ip}")
-        upload_log_file "${server1_ip}"
-        upload_log_file "${server2_ip}"
-        ;;
-    *)
-        echo "Invalid server IP address"
-        exit 1
-        ;;
-esac
+    fi
+done
+# Deleting a local file
+rm $FILENAME
