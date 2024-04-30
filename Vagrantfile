@@ -34,7 +34,7 @@ Vagrant.configure("2") do |config|
       ubuntu.vm.provision "file", source: "#{ssh_key_path}/id_rsa2.pub", destination: "~/.ssh/id_rsa2.pub"
       ubuntu.vm.provision "file", source: "#{ssh_key_path}/id_rsa3.pub", destination: "~/.ssh/id_rsa3.pub"
       ubuntu.vm.provision "file", source: "update_script.sh", destination: "~/update_script.sh"
-      ubuntu.vm.provision "file", source: "python_script.py", destination: "~/python_script.py"
+      ubuntu.vm.provision "file", source: "python.py", destination: "~/python.py"
       ubuntu.vm.provision "shell", privileged: true, inline: <<-SHELL
         # Updating and installing required packages
         apt-get update && apt-get install -y openssh-server
