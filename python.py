@@ -3,7 +3,7 @@ from collections import defaultdict
 import datetime
 
 # Folder with logs
-log_directory = '/home/vagrant/trace'
+log_directory = '/srv/sftpuser/data/trace'
 
 # Folder for reports
 report_directory = '/home/vagrant/report'
